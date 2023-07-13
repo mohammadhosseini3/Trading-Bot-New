@@ -110,7 +110,7 @@ if authorized:
                 print(f"Time -> {(datetime_utc-(datetime_utc-datetime.now())).strftime('%H:%M')}\n"
                       f"1. Trend -> {trend}\n"
                       f"2. First Candle Color -> {candle1_color}\n"
-                      f"3. Third Candle Color -> {candle3_color}"
+                      f"3. Third Candle Color -> {candle3_color}\n"
                       )
                 time.sleep(61)
 

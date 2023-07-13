@@ -10,11 +10,12 @@ password = "m1234567"
 login = 67079899
 symbol: str = "XAUUSD"
 counter: int = 0
-avg: int = 0
+all_risk: int = 0
+all_reward: int = 0
 tp_counter: int = 0
 sl_counter: int = 0
 timeframe = mt5.TIMEFRAME_M5
-ma_period: int = 50
+ma_period: int = 100
 trend_to: int = ma_period
 
 
@@ -46,11 +47,12 @@ if authorized:
 
     # set time zone to UTC
     timezone = pytz.timezone("Etc/UTC")
-    utc_from = datetime(2023, 6, 29, tzinfo=timezone)
-    utc_to = datetime(2023, 6, 30, tzinfo=timezone)
+    utc_from = datetime(2023, 7, 10, tzinfo=timezone)
+    utc_to = datetime(2023, 7, 14, tzinfo=timezone)
     datetime_utc = datetime.fromtimestamp(mt5.symbol_info(symbol)[10])
 
     rates = mt5.copy_rates_range(symbol, timeframe, utc_from, utc_to)
+
     df = pd.DataFrame(rates)
     df['time'] = pd.to_datetime(df['time'], unit='s')
     # df.set_index('time', inplace=True)
@@ -62,6 +64,7 @@ if authorized:
         third_candle = rates[i - 1]
         second_candle = rates[i - 2]
         first_candle = rates[i - 3]
+        current_candle = rates[i]
 
         candle3 = Candle(third_candle['high'], third_candle['low'], third_candle['open'], third_candle['close'])
         candle2 = Candle(second_candle['high'], second_candle['low'], second_candle['open'], second_candle['close'])
@@ -72,16 +75,13 @@ if authorized:
         candle2_color = candle2.is_green_or_red()
         candle3_color = candle3.is_green_or_red()
 
-        # Volume for second and third candle
-        candle2_volume = second_candle['tick_volume']
-        candle3_volume = third_candle['tick_volume']
-
-        current_candle = df.iloc[i]
+        # current_candle = df.iloc[i]
         current_ma = moving_averages.iloc[i]
 
         # Determine the trend based on the current price and moving average
         if current_candle['close'] > current_ma:
             trend = True
+
         elif current_candle['close'] < current_ma:
             trend = False
         else:
@@ -106,20 +106,18 @@ if authorized:
             price = current_candle['open']
             if candle2_type in ['Shooting Star', 'Hanging Man']:
                 sl = second_candle['high']
-                type_of_order = mt5.ORDER_TYPE_SELL
                 tp = price - candle2.length() * 2
             else:
-                type_of_order = mt5.ORDER_TYPE_BUY
                 sl = second_candle['low']
                 tp = price + candle2.length() * 2
 
             reward: float = abs(tp - price)
             risk: float = abs(price - sl)
             current_avg = reward / risk
-            avg += current_avg
-            avg /= counter
 
-            if avg > 1:
+            if current_avg > 2:
+                all_risk += risk
+                all_reward += reward
                 print(f"- - - - {candle2_type} - - - -")
                 if test(rates[i:], tp, sl):
                     tp_counter += 1
@@ -127,9 +125,11 @@ if authorized:
                 else:
                     sl_counter += 1
                     print("Stop Loss Hit")
-                print(f"risk: {risk:.5f}\t reward: {reward:.5f}\treward/risk = {reward/risk:.5f}\tavg: {avg:.5f}\n"
+                print(f"risk: {risk:.5f}\t reward: {reward:.5f}\treward/risk = {reward/risk:.5f}\n"
                       f"sl: {sl:.5f}\ttp: {tp:.5f}\n"
                       f"Time -> {datetime.utcfromtimestamp(second_candle['time'])}\n"
                       f"Trend -> {trend}")
 
-    print(tp_counter, sl_counter)
+    print(f"- - - - - - - -\nNumber of pattern candle: {counter}\n"
+          f"TP Hit: {tp_counter}\t SL Hit: {sl_counter}\n"
+          f"All reward: {all_reward:.5f}\tAll risk: {all_risk:.5f}")
