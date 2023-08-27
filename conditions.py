@@ -7,7 +7,8 @@ def candlestick_type(body,
                      third_candle_close,
                      trend,
                      second_candle_color,
-                     second_candle_open,) -> str:
+                     second_candle_open) -> str:
+
     # it can be shooting star or inverted hammer
     if (first_candle_color and second_candle_color and third_candle_color) is not None:
         if ((upper_shadow >= lower_shadow * 2) and

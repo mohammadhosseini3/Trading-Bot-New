@@ -14,9 +14,8 @@ all_risk: int = 0
 all_reward: int = 0
 tp_counter: int = 0
 sl_counter: int = 0
-timeframe = mt5.TIMEFRAME_M5
-ma_period: int = 100
-trend_to: int = ma_period
+timeframe = mt5.TIMEFRAME_M1
+ma_period: int = 20
 
 
 def test(rates, t, s):
@@ -47,9 +46,10 @@ if authorized:
 
     # set time zone to UTC
     timezone = pytz.timezone("Etc/UTC")
-    utc_from = datetime(2023, 7, 10, tzinfo=timezone)
-    utc_to = datetime(2023, 7, 14, tzinfo=timezone)
+    utc_from = datetime(2023, 7, 28, tzinfo=timezone)
+    utc_to = datetime(2023, 7, 29, tzinfo=timezone)
     datetime_utc = datetime.fromtimestamp(mt5.symbol_info(symbol)[10])
+    point = mt5.symbol_info(symbol).point
 
     rates = mt5.copy_rates_range(symbol, timeframe, utc_from, utc_to)
 
@@ -101,15 +101,15 @@ if authorized:
             second_candle['open']
         )
 
-        if candle2_type:
+        if candle2_type and (candle2.body() < candle1.body()):
             counter += 1
             price = current_candle['open']
             if candle2_type in ['Shooting Star', 'Hanging Man']:
-                sl = second_candle['high']
-                tp = price - candle2.length() * 2
+                sl = second_candle['high'] + (point * 500)
+                tp = price - candle2.length() * 2 - (point * 500)
             else:
-                sl = second_candle['low']
-                tp = price + candle2.length() * 2
+                sl = second_candle['low'] - (point * 500)
+                tp = price + candle2.length() * 2 + (point * 500)
 
             reward: float = abs(tp - price)
             risk: float = abs(price - sl)
